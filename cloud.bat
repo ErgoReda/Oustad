@@ -1,0 +1,1 @@
+ssh -i hdpkeys.pem ubuntu@ec2-15-188-75-251.eu-west-3.compute.amazonaws.com
