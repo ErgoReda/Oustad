@@ -238,7 +238,7 @@ async def updateNewPlayer(members, message, new_status):
 @client.event
 async def on_ready():
     try:
-        createGuildTable()
+        await createGuildTable()
         await retrieveMembers()
         guild = discord.utils.get(client.guilds, name=GUILD)
         target_channel = discord.utils.get(guild.channels, name='general')
