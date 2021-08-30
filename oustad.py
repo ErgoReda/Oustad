@@ -151,7 +151,8 @@ async def requestMembers():
     return members
 
 async def retrieveMembers():
-    if await getLastModificationDatetime().date() == datetime.today().date():
+    lastModificationDatetime = await getLastModificationDatetime()
+    if lastModificationDatetime.date() == datetime.today().date():
         return await readMembers()
     else:
         return await requestMembers()
