@@ -75,6 +75,9 @@ async def createGuildTable():
     # Open a cursor to perform database operations
     cursor = conn.cursor()
     
+    # Execute a command: this sets the correct datestyle
+    cursor.execute("ALTER DATABASE postgresql-rugged-17887 SET datestyle TO 'ISO, european';")
+    
     # Execute a command: this creates a new table
     cursor.execute("CREATE TABLE IF NOT EXISTS oustad (id serial PRIMARY KEY, guild varchar UNIQUE, status varchar NOT NULL, timestamp timestamp);")
     
