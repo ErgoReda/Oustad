@@ -100,7 +100,7 @@ async def writeMembers(members):
         
         # Pass data to fill a query placeholders and let Psycopg perform
         # the correct conversion (no more SQL injections!)
-        cursor.execute("INSERT INTO oustad (guild, status, timestamp) VALUES (%s, %s, %s) ON CONFLICT (guild) DO UPDATE SET status=EXCLUDED.status, timestamp=EXCLUDED.timestamp;", (GUILD, membersJson, nowStr()))
+        cursor.execute("INSERT INTO oustad (guild, status, timestamp) VALUES (%s, %s, %s) ON CONFLICT (guild) DO UPDATE SET status=EXCLUDED.status, timestamp=EXCLUDED.timestamp;", (GUILD, membersJson, datetime.now()))
         
         # Make the changes to the database persistent
         conn.commit()
