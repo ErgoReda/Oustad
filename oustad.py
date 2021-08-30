@@ -115,7 +115,7 @@ async def getLastModificationDatetime():
         cursor = conn.cursor()
         
         # Query the database and obtain data as Python objects
-        cursor.execute("SELECT timestamp FROM oustad WHERE guild=%s;", GUILD)
+        cursor.execute("SELECT timestamp FROM oustad)
         timestamp = cursor.fetchone()
         
         # Close communication with the database
