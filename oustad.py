@@ -137,7 +137,7 @@ async def readMembers():
         
         # Query the database and obtain data as Python objects
         cursor.execute("SELECT status FROM oustad WHERE guild=%s;", GUILD)
-        status = cursor.fetchone()
+        status = cursor.fetchone()[0]
         
         # Close communication with the database
         cursor.close()
@@ -155,7 +155,7 @@ async def requestMembers():
 
 async def retrieveMembers():
     lastModificationDatetimeStr = await getLastModificationDatetime()
-    if lastModificationDatetimeStr == None or datetime.strptime(lastModificationDatetimeStr, '%b %d %Y %I:%M%p').date() != datetime.today().date():
+    if lastModificationDatetimeStr == None or datetime.strptime(lastModificationDatetimeStr[0], '%b %d %Y %I:%M%p').date() != datetime.today().date():
         return await requestMembers()
     else:
         return await readMembers()
