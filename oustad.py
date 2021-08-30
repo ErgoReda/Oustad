@@ -76,7 +76,7 @@ async def createGuildTable():
     cursor = conn.cursor()
     
     # Execute a command: this creates a new table
-    cursor.execute("CREATE TABLE oustad (id serial PRIMARY KEY, guild varchar UNIQUE, status varchar NOT NULL, timestamp timestamp);")
+    cursor.execute("CREATE TABLE IF NOT EXISTS oustad (id serial PRIMARY KEY, guild varchar UNIQUE, status varchar NOT NULL, timestamp timestamp);")
     
     # Make the changes to the database persistent
     conn.commit()
