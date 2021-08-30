@@ -97,7 +97,7 @@ async def writeMembers(members):
         
         # Pass data to fill a query placeholders and let Psycopg perform
         # the correct conversion (no more SQL injections!)
-        cursor.execute("INSERT INTO oustad (guild, data, timestamp) VALUES (%s, %s, %s) ON CONFLICT (guild) DO UPDATE SET status=EXCLUDED.status, timestamp=EXCLUDED.timestamp;", GUILD, membersJson, nowStr())
+        cursor.execute("INSERT INTO oustad (guild, data, timestamp) VALUES (%s, %s, %s) ON CONFLICT (guild) DO UPDATE SET status=EXCLUDED.status, timestamp=EXCLUDED.timestamp;", (GUILD, membersJson, nowStr()))
         
         # Make the changes to the database persistent
         conn.commit()
@@ -115,7 +115,7 @@ async def getLastModificationDatetime():
         cursor = conn.cursor()
         
         # Query the database and obtain data as Python objects
-        cursor.execute("SELECT timestamp FROM oustad")
+        cursor.execute("SELECT timestamp FROM oustad where guild=%s", (GUILD,))
         timestamp = cursor.fetchone()
         
         # Close communication with the database
