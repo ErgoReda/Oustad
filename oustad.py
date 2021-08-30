@@ -41,9 +41,7 @@ class Availability:
         if status==Status.IN:
             self.available_at = available_at
 
-fileAccessLock = asyncio.Lock()
-jsonSuffix = '.json'
-membersFileName = GUILD + jsonSuffix
+accessLock = asyncio.Lock()
 
 ################################################################
 def nowStr():
@@ -68,7 +66,7 @@ def setName(members, id, name):
     members[id][0] = name
 
 #################################################################
-async def createGuildTable():
+async def createMainTableAndAddGuildIfNeeded():
     # Connect to an existing database
     conn = psycopg2.connect(DATABASE_URL, sslmode='require')
     
@@ -81,6 +79,10 @@ async def createGuildTable():
     # Execute a command: this creates a new table
     cursor.execute("CREATE TABLE IF NOT EXISTS oustad (id serial PRIMARY KEY, guild varchar UNIQUE, status varchar NOT NULL, timestamp timestamp);")
     
+    # Pass data to fill a query placeholders and let Psycopg perform
+    # the correct conversion (no more SQL injections!)
+    cursor.execute("INSERT INTO oustad (guild, status, timestamp) VALUES (%s, %s, %s) ON CONFLICT (guild) DO NOTHING", (GUILD, "{}", datetime.now()))
+    
     # Make the changes to the database persistent
     conn.commit()
     
@@ -90,7 +92,7 @@ async def createGuildTable():
     
 async def writeMembers(members):
     membersJson = json.dumps(members, indent=4, sort_keys=True)
-    async with fileAccessLock:
+    async with accessLock:
         
         # Connect to an existing database
         conn = psycopg2.connect(DATABASE_URL, sslmode='require')
@@ -100,7 +102,7 @@ async def writeMembers(members):
         
         # Pass data to fill a query placeholders and let Psycopg perform
         # the correct conversion (no more SQL injections!)
-        cursor.execute("INSERT INTO oustad (guild, status, timestamp) VALUES (%s, %s, %s) ON CONFLICT (guild) DO UPDATE SET status=EXCLUDED.status, timestamp=EXCLUDED.timestamp;", (GUILD, membersJson, datetime.now()))
+        cursor.execute("UPDATE oustad SET status=%s, timestamp=%s WHERE guild=%s;", (membersJson, datetime.now(), GUILD))
         
         # Make the changes to the database persistent
         conn.commit()
@@ -110,7 +112,7 @@ async def writeMembers(members):
         conn.close()
 
 async def getLastModificationDatetime():
-    async with fileAccessLock:
+    async with accessLock:
         # Connect to an existing database
         conn = psycopg2.connect(DATABASE_URL, sslmode='require')
         
@@ -128,7 +130,7 @@ async def getLastModificationDatetime():
         return timestamp
         
 async def readMembers():
-    async with fileAccessLock:
+    async with accessLock:
         # Connect to an existing database
         conn = psycopg2.connect(DATABASE_URL, sslmode='require')
         
@@ -241,7 +243,7 @@ async def updateNewPlayer(members, message, new_status):
 @client.event
 async def on_ready():
     try:
-        await createGuildTable()
+        await createMainTableAndAddGuildIfNeeded()
         await retrieveMembers()
         guild = discord.utils.get(client.guilds, name=GUILD)
         target_channel = discord.utils.get(guild.channels, name='general')
