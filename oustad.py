@@ -122,7 +122,7 @@ async def getLastModificationDatetime():
         cursor.close()
         conn.close()
         
-        return datetime.strptime(timestamp, '%b %d %Y %I:%M%p')
+        return timestamp
         
 async def readMembers():
     async with fileAccessLock:
@@ -151,11 +151,11 @@ async def requestMembers():
     return members
 
 async def retrieveMembers():
-    lastModificationDatetime = await getLastModificationDatetime()
-    if lastModificationDatetime.date() == datetime.today().date():
-        return await readMembers()
-    else:
+    lastModificationDatetimeStr = await getLastModificationDatetime()
+    if lastModificationDatetimeStr == None or datetime.strptime(lastModificationDatetimeStr, '%b %d %Y %I:%M%p').date() != datetime.today().date():
         return await requestMembers()
+    else:
+        return await readMembers()
 
 ##################################################################
 def getMembersPerStatus(members, status):
