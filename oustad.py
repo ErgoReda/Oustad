@@ -8,12 +8,14 @@ import random
 from datetime import date, datetime
 from dateutil.parser import parse
 from dateutil.parser._parser import ParserError
-from dotenv import load_dotenv
+import psycopg2
 
-load_dotenv()
+# Environment variables
 TOKEN = os.getenv('DISCORD_TOKEN')
 GUILD = os.getenv('DISCORD_GUILD')
 PREFIX = os.getenv('DISCORD_PREFIX')
+
+DATABASE_URL = os.environ['DATABASE_URL']
 
 intents = discord.Intents.default()
 intents.members = True
@@ -66,18 +68,82 @@ def setName(members, id, name):
     members[id][0] = name
 
 #################################################################
+async def createGuildTable():
+    # Connect to an existing database
+    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+    
+    # Open a cursor to perform database operations
+    cursor = conn.cursor()
+    
+    # Execute a command: this creates a new table
+    cursor.execute("CREATE TABLE oustad (id serial PRIMARY KEY, guild varchar UNIQUE, status varchar NOT NULL, timestamp timestamp);")
+    
+    # Make the changes to the database persistent
+    conn.commit()
+    
+    # Close communication with the database
+    cursor.close()
+    conn.close()
+    
 async def writeMembers(members):
     membersJson = json.dumps(members, indent=4, sort_keys=True)
     async with fileAccessLock:
-        with open(membersFileName,"w") as file:
-            file.write(membersJson)
+        
+        # Connect to an existing database
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        
+        # Open a cursor to perform database operations
+        cursor = conn.cursor()
+        
+        # Pass data to fill a query placeholders and let Psycopg perform
+        # the correct conversion (no more SQL injections!)
+        cursor.execute("INSERT INTO oustad (guild, data, timestamp) VALUES (%s, %s, %s) ON CONFLICT (guild) DO UPDATE SET status=EXCLUDED.status, timestamp=EXCLUDED.timestamp;", GUILD, membersJson, nowStr())
+        
+        # Make the changes to the database persistent
+        conn.commit()
+        
+        # Close communication with the database
+        cursor.close()
+        conn.close()
 
+async def getLastModificationDatetime():
+    async with fileAccessLock:
+        # Connect to an existing database
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        
+        # Open a cursor to perform database operations
+        cursor = conn.cursor()
+        
+        # Query the database and obtain data as Python objects
+        cursor.execute("SELECT timestamp FROM oustad WHERE guild=%s;", GUILD)
+        timestamp = cursor.fetchone()
+        
+        # Close communication with the database
+        cursor.close()
+        conn.close()
+        
+        return datetime.strptime(timestamp, '%b %d %Y %I:%M%p')
+        
 async def readMembers():
     async with fileAccessLock:
-        with open(membersFileName) as file:
-            return json.load(file)
+        # Connect to an existing database
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        
+        # Open a cursor to perform database operations
+        cursor = conn.cursor()
+        
+        # Query the database and obtain data as Python objects
+        cursor.execute("SELECT status FROM oustad WHERE guild=%s;", GUILD)
+        status = cursor.fetchone()
+        
+        # Close communication with the database
+        cursor.close()
+        conn.close()
+        
+        return json.load(status)
 
 async def requestMembers():
+    print(f'{nowStr()} Members dictionary retrieved from the web')
     guild = discord.utils.get(client.guilds, name=GUILD)
     members = {str(key.id): list([key.name, Status.SLEEP, None]) for key in guild.members}
     del members[str(client.user.id)]
@@ -85,11 +151,9 @@ async def requestMembers():
     return members
 
 async def retrieveMembers():
-    membersFile = pathlib.Path(membersFileName)
-    if (membersFile.exists() and date.fromtimestamp(membersFile.stat().st_mtime) == date.today()):
+    if await getLastModificationDatetime().date() == datetime.today().date():
         return await readMembers()
     else:
-        print(f'{nowStr()} Members dictionary retrieved from the web')
         return await requestMembers()
 
 ##################################################################
@@ -173,6 +237,7 @@ async def updateNewPlayer(members, message, new_status):
 @client.event
 async def on_ready():
     try:
+        createGuildTable()
         await retrieveMembers()
         guild = discord.utils.get(client.guilds, name=GUILD)
         target_channel = discord.utils.get(guild.channels, name='general')
