@@ -145,7 +145,7 @@ async def readMembers():
         cursor.close()
         conn.close()
         
-        return json.load(status)
+        return json.loads(status)
 
 async def requestMembers():
     print(f'{nowStr()} Members dictionary retrieved from the web')
