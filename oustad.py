@@ -138,7 +138,7 @@ async def readMembers():
         cursor = conn.cursor()
         
         # Query the database and obtain data as Python objects
-        cursor.execute("SELECT status FROM oustad WHERE guild=%s;", GUILD)
+        cursor.execute("SELECT status FROM oustad WHERE guild=%s;", (GUILD,))
         status = cursor.fetchone()[0]
         
         # Close communication with the database
